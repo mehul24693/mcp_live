@@ -1,51 +1,49 @@
-// index.js
 import express from "express";
 import dotenv from "dotenv";
 dotenv.config();
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StreamableHttpServerTransport } from "@modelcontextprotocol/sdk/server/streamable-http.js";
+import { NodeHttpTransport } from "@modelcontextprotocol/sdk/server/node-http.js";
 
 import registerTools from "./tools.js";
 
 const app = express();
 app.use(express.json());
 
-// -------------------------------
-// SERVER CONFIG
-// -------------------------------
+// CONFIG
 const PORT = process.env.PORT || 3000;
 const MCP_PATH = "/mcp";
 
+// MCP SERVER
 const server = new McpServer({
-    name: "mcp-static-demo",
-    version: "1.0.0",
-    description: "Static data MCP Server hosted on Render.com"
+  name: "mcp-static-demo",
+  version: "1.0.0",
+  description: "Static data MCP Server hosted on Render.com"
 });
 
-// Register all demo tools
+// Load tools
 registerTools(server);
 
-// -------------------------------
-// MCP TRANSPORT (HTTP)
-// -------------------------------
-const transport = new StreamableHttpServerTransport({
-    path: MCP_PATH,
-    allowedOrigins: ["*"]  // allow all for demo
+// HTTP Transport
+const transport = new NodeHttpTransport({
+  path: MCP_PATH,
+  allowedOrigins: ["*"]
 });
 
 server.connect(transport);
 
-// Attach MCP route to Express if middleware() exists
+// Bind Express
 if (typeof transport.middleware === "function") {
-    app.use(MCP_PATH, transport.middleware());
+  app.use(MCP_PATH, transport.middleware());
+} else {
+  console.log("⚠️ WARNING: transport.middleware not available. SDK version changed.");
 }
 
-// Health check
+// Health
 app.get("/health", (req, res) => res.json({ ok: true, mcp: true }));
 
-// Start server
+// Start
 app.listen(PORT, "0.0.0.0", () => {
-    console.log(`🔥 MCP Static Server running on http://0.0.0.0:${PORT}`);
-    console.log(`➡️  MCP Endpoint: http://<your-render-url>${MCP_PATH}`);
+  console.log(`🔥 Running on http://0.0.0.0:${PORT}`);
+  console.log(`MCP endpoint → http://<render-url>${MCP_PATH}`);
 });

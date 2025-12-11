@@ -1,59 +1,134 @@
+// tools.js - Correct MCP SDK tool registration with proper schemas
+
+import { ListToolsRequestSchema, CallToolRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+
 export default function registerTools(server) {
-
-    const users = [
-        { id: 1, name: "Mehul", email: "mehul@example.com", status: "active" },
-        { id: 2, name: "John", email: "john@example.com", status: "inactive" }
-    ];
-
-    const products = [
-        { id: 101, name: "Laptop", price: 55000 },
-        { id: 102, name: "Camera", price: 75000 }
-    ];
-
-    // Get all users
-    server.tool("getUsers", {}, async () => {
+    
+    // Handler for listing available tools
+    server.setRequestHandler(ListToolsRequestSchema, async () => {
         return {
-            content: [{ type: "json", json: users }]
+            tools: [
+                {
+                    name: "getUsers",
+                    description: "Get a list of users",
+                    inputSchema: {
+                        type: "object",
+                        properties: {},
+                        required: []
+                    }
+                },
+                {
+                    name: "createUser",
+                    description: "Create a new user",
+                    inputSchema: {
+                        type: "object",
+                        properties: {
+                            name: {
+                                type: "string",
+                                description: "User's name"
+                            },
+                            email: {
+                                type: "string",
+                                description: "User's email address"
+                            }
+                        },
+                        required: ["name", "email"]
+                    }
+                },
+                {
+                    name: "getUserById",
+                    description: "Get a specific user by ID",
+                    inputSchema: {
+                        type: "object",
+                        properties: {
+                            id: {
+                                type: "number",
+                                description: "User ID"
+                            }
+                        },
+                        required: ["id"]
+                    }
+                }
+            ]
         };
     });
 
-    // Get user by ID
-    server.tool("getUserById", {
-        id: "number"
-    }, async ({ id }) => {
-        const u = users.find(x => x.id === id);
-        return {
-            content: [{ type: "json", json: u || { error: "User not found" } }]
-        };
+    // Handler for calling tools
+    server.setRequestHandler(CallToolRequestSchema, async (request) => {
+        const { name, arguments: args } = request.params;
+
+        console.log(`🔧 Calling tool: ${name}`, args);
+
+        switch (name) {
+            case "getUsers":
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: JSON.stringify([
+                                { id: 1, name: "Alice", email: "alice@example.com" },
+                                { id: 2, name: "Bob", email: "bob@example.com" },
+                                { id: 3, name: "Charlie", email: "charlie@example.com" }
+                            ], null, 2)
+                        }
+                    ]
+                };
+
+            case "createUser":
+                const newUser = {
+                    id: Math.floor(Math.random() * 1000) + 4,
+                    name: args.name,
+                    email: args.email,
+                    createdAt: new Date().toISOString()
+                };
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: JSON.stringify({
+                                success: true,
+                                user: newUser
+                            }, null, 2)
+                        }
+                    ]
+                };
+
+            case "getUserById":
+                const users = [
+                    { id: 1, name: "Alice", email: "alice@example.com" },
+                    { id: 2, name: "Bob", email: "bob@example.com" },
+                    { id: 3, name: "Charlie", email: "charlie@example.com" }
+                ];
+                const user = users.find(u => u.id === args.id);
+                
+                if (!user) {
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: JSON.stringify({
+                                    error: "User not found",
+                                    id: args.id
+                                }, null, 2)
+                            }
+                        ],
+                        isError: true
+                    };
+                }
+                
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: JSON.stringify(user, null, 2)
+                        }
+                    ]
+                };
+
+            default:
+                throw new Error(`Unknown tool: ${name}`);
+        }
     });
 
-    // Get all products
-    server.tool("getProducts", {}, async () => {
-        return {
-            content: [{ type: "json", json: products }]
-        };
-    });
-
-    // Search
-    server.tool("searchData", {
-        keyword: "string"
-    }, async ({ keyword }) => {
-        const key = keyword.toLowerCase();
-
-        const userMatches = users.filter(x =>
-            x.name.toLowerCase().includes(key) ||
-            x.email.toLowerCase().includes(key)
-        );
-
-        const productMatches = products.filter(x =>
-            x.name.toLowerCase().includes(key)
-        );
-
-        return {
-            content: [{
-                type: "json",
-                json: { keyword, userMatches, productMatches }
-            }]
-        };
-    });
+    console.log("✅ Tools registered successfully");
 }

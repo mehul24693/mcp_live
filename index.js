@@ -3,47 +3,45 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { NodeHttpTransport } from "@modelcontextprotocol/sdk/server/node-http.js";
+import { NodeMcpHttpServer } from "@modelcontextprotocol/sdk/server/node-http.js";
 
 import registerTools from "./tools.js";
+
+const PORT = process.env.PORT || 3000;
+const MCP_PATH = "/mcp";
 
 const app = express();
 app.use(express.json());
 
-// CONFIG
-const PORT = process.env.PORT || 3000;
-const MCP_PATH = "/mcp";
-
-// MCP SERVER
+// CREATE MCP SERVER INSTANCE
 const server = new McpServer({
-  name: "mcp-static-demo",
-  version: "1.0.0",
-  description: "Static data MCP Server hosted on Render.com"
+    name: "mcp-static-demo",
+    version: "1.0.0",
+    description: "Static MCP server running on Render"
 });
 
-// Load tools
+// REGISTER STATIC TOOLS
 registerTools(server);
 
-// HTTP Transport
-const transport = new NodeHttpTransport({
-  path: MCP_PATH,
-  allowedOrigins: ["*"]
+// CREATE HTTP SERVER TRANSPORT
+const transport = new NodeMcpHttpServer({
+    path: MCP_PATH,
+    allowedOrigins: ["*"]  // open to all – for demo only
 });
 
+// CONNECT MCP SERVER TO TRANSPORT
 server.connect(transport);
 
-// Bind Express
-if (typeof transport.middleware === "function") {
-  app.use(MCP_PATH, transport.middleware());
-} else {
-  console.log("⚠️ WARNING: transport.middleware not available. SDK version changed.");
-}
+// ADD MCP ROUTES TO EXPRESS
+app.use(MCP_PATH, transport.middleware());
 
-// Health
-app.get("/health", (req, res) => res.json({ ok: true, mcp: true }));
+// HEALTH CHECK
+app.get("/health", (req, res) => {
+    res.json({ ok: true, mcp: true });
+});
 
-// Start
+// START EXPRESS SERVER
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🔥 Running on http://0.0.0.0:${PORT}`);
-  console.log(`MCP endpoint → http://<render-url>${MCP_PATH}`);
+    console.log(`🔥 Server running on http://0.0.0.0:${PORT}`);
+    console.log(`➡️ MCP Endpoint: http://<your-render-url>${MCP_PATH}`);
 });

@@ -1,80 +1,59 @@
-// tools.js — static demo tools for MCP
 export default function registerTools(server) {
 
-    // ---- STATIC DATA EXAMPLE ----
     const users = [
-        { id: 1, name: "Mehul", email: "mehul@test.com", status: "active" },
-        { id: 2, name: "John Doe", email: "john@test.com", status: "inactive" },
-        { id: 3, name: "Amit", email: "amit@test.com", status: "active" }
+        { id: 1, name: "Mehul", email: "mehul@example.com", status: "active" },
+        { id: 2, name: "John", email: "john@example.com", status: "inactive" }
     ];
 
     const products = [
         { id: 101, name: "Laptop", price: 55000 },
-        { id: 102, name: "Camera", price: 75000 },
-        { id: 103, name: "Mobile", price: 25000 }
+        { id: 102, name: "Camera", price: 75000 }
     ];
 
-    // ------------------------------------
-    // TOOL 1 — Get All Users
-    // ------------------------------------
+    // Get all users
     server.tool("getUsers", {}, async () => {
         return {
-            content: [
-                { type: "text", text: JSON.stringify(users, null, 2) }
-            ]
+            content: [{ type: "json", json: users }]
         };
     });
 
-    // ------------------------------------
-    // TOOL 2 — Get User by ID
-    // ------------------------------------
-    server.tool("getUserById", { id: "number" }, async ({ id }) => {
+    // Get user by ID
+    server.tool("getUserById", {
+        id: "number"
+    }, async ({ id }) => {
         const u = users.find(x => x.id === id);
         return {
-            content: [
-                { type: "text", text: JSON.stringify(u || { error: "User not found" }, null, 2) }
-            ]
+            content: [{ type: "json", json: u || { error: "User not found" } }]
         };
     });
 
-    // ------------------------------------
-    // TOOL 3 — Get All Products
-    // ------------------------------------
+    // Get all products
     server.tool("getProducts", {}, async () => {
         return {
-            content: [
-                { type: "text", text: JSON.stringify(products, null, 2) }
-            ]
+            content: [{ type: "json", json: products }]
         };
     });
 
-    // ------------------------------------
-    // TOOL 4 — Search Any Keyword in Users + Products
-    // ------------------------------------
-    server.tool("searchData", { keyword: "string" }, async ({ keyword }) => {
-        keyword = keyword.toLowerCase();
+    // Search
+    server.tool("searchData", {
+        keyword: "string"
+    }, async ({ keyword }) => {
+        const key = keyword.toLowerCase();
 
-        const userMatches = users.filter(u => 
-            u.name.toLowerCase().includes(keyword) ||
-            u.email.toLowerCase().includes(keyword)
+        const userMatches = users.filter(x =>
+            x.name.toLowerCase().includes(key) ||
+            x.email.toLowerCase().includes(key)
         );
 
-        const productMatches = products.filter(p => 
-            p.name.toLowerCase().includes(keyword)
+        const productMatches = products.filter(x =>
+            x.name.toLowerCase().includes(key)
         );
 
         return {
-            content: [
-                { 
-                    type: "text", 
-                    text: JSON.stringify({
-                        keyword,
-                        userMatches,
-                        productMatches
-                    }, null, 2) 
-                }
-            ]
+            content: [{
+                type: "json",
+                json: { keyword, userMatches, productMatches }
+            }]
         };
     });
-
 }
